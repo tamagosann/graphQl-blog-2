@@ -1,0 +1,15 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type PostModel {
+  id: String!
+  title: String!
+}
+
+type Query {
+  hello: Int!
+  helloConfiguration: String!
+  helloEnv: String!
+  posts: [PostModel!]
+}

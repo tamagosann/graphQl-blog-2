@@ -1,11 +1,26 @@
 import { ConfigService } from '@nestjs/config';
-import { Args, Int, Query, Resolver } from '@nestjs/graphql';
+import {
+  Args,
+  Int,
+  Parent,
+  Query,
+  ResolveField,
+  Resolver,
+} from '@nestjs/graphql';
 import { PbEnv } from 'src/config/environments/pb-env/pb-env.service';
 import { PostModel } from './interfaces/post.model';
+import { PrismaClient } from '@prisma/client';
+import { GetPostsArgs } from './interfaces/get-posts-connection.args';
+import { FindPostArgs } from './interfaces/find-post-args';
+import matter from 'gray-matter';
 
 @Resolver((of) => PostModel)
 export class PostsResolver {
-  constructor(private configService: ConfigService, private pbEnv: PbEnv) {}
+  constructor(
+    private configService: ConfigService,
+    private pbEnv: PbEnv,
+    private readonly prisma: PrismaClient,
+  ) {}
 
   @Query(() => Int)
   hello(): number {
@@ -26,8 +41,9 @@ export class PostsResolver {
     return this.pbEnv.DatabaseUrl; // かなり直感的になりました。ミスも減りそう
   }
 
-  @Query(() => [PostModel], { name: 'posts', nullable: true })
-  async getPosts() {
+  // 役目を終えたのでリネーム
+  @Query(() => [PostModel], { name: 'fixedPosts', nullable: true })
+  async getPostsByFixedData() {
     return [
       {
         id: '1',
@@ -38,5 +54,47 @@ export class PostsResolver {
         title: 'GraphQL is so good.',
       },
     ];
+  }
+
+  @Query(() => [PostModel], { name: 'prismaPosts', nullable: true })
+  async getPostsByPrisma() {
+    return this.prisma.post.findMany();
+  }
+
+  @Query(() => [PostModel], { name: 'posts', nullable: true })
+  async getPosts(@Args() args: GetPostsArgs) {
+    return this.prisma.post.findMany({
+      where: {
+        type: args.type
+          ? {
+              in: args.type,
+            }
+          : undefined,
+        published: true, // ついでに指定。公開ブログへ渡すデータなのでtrue固定にしちゃう
+      },
+      orderBy: {
+        publishDate: 'desc',
+      },
+    });
+  }
+  @Query(() => PostModel, { name: 'findPost', nullable: false })
+  async findPost(@Args() args: FindPostArgs) {
+    return await this.prisma.post.findUnique({
+      rejectOnNotFound: true,
+      where: {
+        id: args.id,
+        contentPath: args.contentPath,
+      },
+    });
+  }
+
+  @ResolveField(() => String, { name: 'bodyMarkdown', nullable: false })
+  async bodyMarkdown(@Parent() post: PostModel) {
+    const { contentPath } = post;
+    // 本当はここでmdファイルを呼ぶ
+
+    // const { content } = matter(markdown);
+    const content = 'aaaaaaa';
+    return content;
   }
 }

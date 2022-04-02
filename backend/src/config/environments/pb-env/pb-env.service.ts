@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { GqlModuleOptions } from '@nestjs/graphql';
+import * as path from 'path';
 
 /**
  * アプリケーションモジュールで利用する設定値は、ここから取得します。
@@ -26,5 +28,31 @@ export class PbEnv {
 
   get DatabaseUrl(): string {
     return this.configService.get('DATABASE_URL');
+  }
+
+  get GqlModuleOptionsFactory(): GqlModuleOptions {
+    // 開発：コードからスキーマを生成し、Playgroundも利用する。
+    // バックエンドのコードが正なのでコードファーストアプローチを使う
+    const devOptions: GqlModuleOptions = {
+      autoSchemaFile: path.join(
+        process.cwd(),
+        'src/generated/graphql/schema.gql',
+      ),
+      sortSchema: true,
+      debug: true,
+      playground: true,
+    };
+
+    // 本番環境：実行だけ
+    const prdOptions: GqlModuleOptions = {
+      autoSchemaFile: true,
+      debug: false,
+      playground: false,
+    };
+    if (this.isProduction()) {
+      return prdOptions;
+    } else {
+      return devOptions;
+    }
   }
 }

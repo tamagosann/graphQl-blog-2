@@ -1,0 +1,40 @@
+query IzennoPostIndexPage {
+  articles: posts(type: ["article"]) {
+    id
+    title
+    type
+    publishDate
+    emoji
+  }
+  diaries: posts(type: ["diary"]) {
+    id
+    title
+    type
+    publishDate
+    emoji
+  }
+}
+
+fragment Post on PostModel {
+  id
+  title
+  type
+  publishDate
+  emoji
+}
+
+query PostIndexPage {
+  articles: posts(type: ["article"]) {
+    ...Post
+  }
+  diaries: posts(type: ["diary"]) {
+    ...Post
+  }
+}
+
+query PostDetailPage($contentPath: String) {
+  post: findPost(contentPath: $contentPath) {
+    ...Post
+    bodyMarkdown
+  }
+}
